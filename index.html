@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>จัดเวลานักศึกษา</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════ AUTH ══════════════════ -->
+<div id="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-emoji">📚</div>
+    <div class="auth-title kanit">จัดเวลานักศึกษา</div>
+    <div class="auth-sub">เข้าสู่ระบบเพื่อบันทึกตาราง<br>และ sync ข้ามอุปกรณ์</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">เข้าสู่ระบบ</button>
+      <button class="auth-tab" onclick="switchTab('register')">สมัครสมาชิก</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="field"><label>อีเมล</label>
+        <input type="email" id="l-email" placeholder="student@email.com" autocomplete="email"/></div>
+      <div class="field"><label>รหัสผ่าน</label>
+        <input type="password" id="l-password" placeholder="••••••••" autocomplete="current-password"/></div>
+      <button class="btn-primary" onclick="doLogin()" id="btn-login">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        เข้าสู่ระบบ
+      </button>
+      <div id="l-msg"></div>
+      <p style="text-align:center;font-size:12px;color:var(--gray);margin-top:12px;cursor:pointer"
+         onclick="fillDemo()">🔑 ใช้บัญชีทดสอบ</p>
+    </div>
+
+    <!-- Register form -->
+    <div id="form-register" style="display:none">
+      <div class="field"><label>ชื่อ</label>
+        <input type="text" id="r-name" placeholder="ชื่อของคุณ"/></div>
+      <div class="field"><label>อีเมล</label>
+        <input type="email" id="r-email" placeholder="student@email.com"/></div>
+      <div class="field">
+        <label>รหัสผ่าน <span id="pw-strength-label" style="font-weight:400;color:var(--gray)"></span></label>
+        <input type="password" id="r-password" placeholder="อย่างน้อย 8 ตัวอักษร" oninput="checkPw(this.value)"/>
+        <div class="pw-bar"><div class="pw-fill" id="pw-fill" style="width:0%"></div></div>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        สมัครสมาชิก
+      </button>
+      <div id="r-msg"></div>
+    </div>
+
+
+  </div>
+</div>
+
+<!-- ══════════════════ APP ══════════════════ -->
+<div id="app">
+
+  <!-- Toast -->
+  <div id="toast-wrap"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-row">
+      <div class="header-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F2C879" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="kanit">จัดเวลานักศึกษา</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" onclick="toggleNotify()" id="notify-btn">
+          <svg id="bell-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notify-label">เปิดเตือน</span>
+        </button>
+        <button class="header-btn" onclick="doLogout()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          ออกจากระบบ
+        </button>
+      </div>
+    </div>
+    <div class="header-info">
+      <span class="dot-green"></span>
+      <span id="user-label">กำลังโหลด...</span>
+    </div>
+  </div>
+
+  <!-- ── Schedule Tab ── -->
+  <div id="tab-schedule" class="tab-content active">
+    <div class="pills" id="day-pills"></div>
+
+    <div class="card" style="padding:12px 0 8px">
+      <div style="padding:0 14px 6px;display:flex;align-items:baseline;gap:8px">
+        <span class="kanit" style="font-size:14px;font-weight:700" id="day-title">วันจันทร์</span>
+        <span style="font-size:12px;color:var(--gray)" id="day-count"></span>
+      </div>
+      <div class="timeline-wrap" style="padding:0 4px">
+        <div class="timeline" id="timeline" style="min-width:900px"></div>
+      </div>
+    </div>
+
+    <div class="card" id="day-items-card" style="display:none">
+      <p class="kanit" style="font-size:13px;font-weight:700;margin-bottom:10px" id="day-items-title"></p>
+      <div id="day-items-list"></div>
+    </div>
+
+    <div class="card card-yellow" id="rest-card" style="display:none">
+      <p class="kanit" style="font-size:13px;font-weight:700;margin-bottom:6px;color:#7A5C1E">🌙 เวลาพักแนะนำวันนี้</p>
+      <div id="rest-list"></div>
+    </div>
+
+    <button class="btn-primary" onclick="openAddItem()" style="border-radius:12px;margin-bottom:4px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      เพิ่มกิจกรรม
+    </button>
+  </div>
+
+  <!-- ── Yearly Tab ── -->
+  <div id="tab-yearly" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <button onclick="yearView--; renderYearly()" style="background:#fff;border:1px solid var(--lgray);border-radius:9px;padding:8px 12px;cursor:pointer;display:flex">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="kanit" style="font-size:19px;font-weight:700" id="year-title"></span>
+      <button onclick="yearView++; renderYearly()" style="background:#fff;border:1px solid var(--lgray);border-radius:9px;padding:8px 12px;cursor:pointer;display:flex">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+    <div class="pills" id="month-pills"></div>
+    <div class="card" id="month-card"></div>
+    <div class="card" id="sel-date-card" style="display:none"></div>
+    <div class="card" id="month-events-card" style="display:none"></div>
+    <button class="btn-primary" onclick="openAddEvent()" style="border-radius:12px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      เพิ่มกิจกรรมพิเศษ
+    </button>
+  </div>
+
+  <!-- ── Summary Tab ── -->
+  <div id="tab-summary" class="tab-content">
+    <div class="card card-dark" id="summary-card"></div>
+    <div id="daily-summary"></div>
+
+    <!-- JWT Debug section -->
+    <div class="card">
+      <p class="kanit" style="font-size:14px;font-weight:700;margin-bottom:8px">🔑 JWT Token ที่ใช้งาน</p>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:6px">token นี้จะถูกส่งใน header ทุก API request</p>
+      <div class="token-box" id="token-display"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div style="background:#F0EBE0;border-radius:8px;padding:9px;font-size:12px">
+          <div style="font-weight:700;color:var(--navy);margin-bottom:3px">Header</div>
+          <div style="color:var(--gray);font-family:'Courier New',monospace;font-size:10px">Algorithm: HS256</div>
+        </div>
+        <div style="background:#F0EBE0;border-radius:8px;padding:9px;font-size:12px" id="jwt-payload-box">
+          <div style="font-weight:700;color:var(--navy);margin-bottom:3px">Payload</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchMainTab('schedule',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      ตาราง
+    </button>
+    <button class="nav-btn" onclick="switchMainTab('yearly',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      รายปี
+    </button>
+    <button class="nav-btn" onclick="switchMainTab('summary',this)">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      สรุป
+    </button>
+  </nav>
+</div>
+
+<!-- ── Modal: Add Item ── -->
+<div class="overlay" id="modal-item" onclick="closeIfOverlay(event,'modal-item')">
+  <div class="sheet">
+    <div class="sheet-title">
+      <span class="kanit">เพิ่มกิจกรรม</span>
+      <button class="btn-icon" onclick="closeModal('modal-item')">✕</button>
+    </div>
+    <div class="type-btns">
+      <button class="type-btn active-class" id="type-class" onclick="setType('class')">📘 เรียน</button>
+      <button class="type-btn" id="type-work" onclick="setType('work')">💼 งาน/พาร์ทไทม์</button>
+    </div>
+    <input class="form-input" id="item-name" placeholder="ชื่อวิชา / งาน"/>
+    <select class="form-input" id="item-day">
+      <option value="0">วันจันทร์</option><option value="1">วันอังคาร</option>
+      <option value="2">วันพุธ</option><option value="3">วันพฤหัสบดี</option>
+      <option value="4">วันศุกร์</option><option value="5">วันเสาร์</option>
+      <option value="6">วันอาทิตย์</option>
+    </select>
+    <div class="time-row">
+      <input class="form-input" type="time" id="item-start" value="09:00" style="margin-bottom:0"/>
+      <input class="form-input" type="time" id="item-end" value="10:00" style="margin-bottom:0"/>
+    </div>
+    <div id="item-err" class="err-msg"></div>
+    <button class="btn-primary" onclick="saveItem()" style="margin-top:10px">✓ บันทึก</button>
+  </div>
+</div>
+
+<!-- ── Modal: Edit Item ── -->
+<div class="overlay" id="modal-edit" onclick="closeIfOverlay(event,'modal-edit')">
+  <div class="sheet">
+    <div class="sheet-title">
+      <span class="kanit">แก้ไขกิจกรรม</span>
+      <button class="btn-icon" onclick="closeModal('modal-edit')">✕</button>
+    </div>
+    <div class="type-btns">
+      <button class="type-btn active-class" id="edit-type-class" onclick="setEditType('class')">📘 เรียน</button>
+      <button class="type-btn" id="edit-type-work" onclick="setEditType('work')">💼 งาน/พาร์ทไทม์</button>
+    </div>
+    <input class="form-input" id="edit-name" placeholder="ชื่อวิชา / งาน"/>
+    <select class="form-input" id="edit-day">
+      <option value="0">วันจันทร์</option><option value="1">วันอังคาร</option>
+      <option value="2">วันพุธ</option><option value="3">วันพฤหัสบดี</option>
+      <option value="4">วันศุกร์</option><option value="5">วันเสาร์</option>
+      <option value="6">วันอาทิตย์</option>
+    </select>
+    <div class="time-row">
+      <input class="form-input" type="time" id="edit-start" style="margin-bottom:0"/>
+      <input class="form-input" type="time" id="edit-end" style="margin-bottom:0"/>
+    </div>
+    <div id="edit-err" class="err-msg" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-primary" onclick="saveEdit()" style="flex:1">✓ บันทึกการแก้ไข</button>
+      <button onclick="deleteFromEdit()" style="padding:12px 14px;background:#FBEAE5;color:#C8553D;border:none;border-radius:10px;cursor:pointer;font-size:20px;line-height:1">🗑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Add Event ── -->
+<div class="overlay" id="modal-event" onclick="closeIfOverlay(event,'modal-event')">
+  <div class="sheet">
+    <div class="sheet-title">
+      <span class="kanit">เพิ่มกิจกรรมพิเศษ</span>
+      <button class="btn-icon" onclick="closeModal('modal-event')">✕</button>
+    </div>
+    <input class="form-input" type="date" id="ev-date"/>
+    <select class="form-input" id="ev-type">
+      <option value="exam">📝 สอบ</option>
+      <option value="holiday">🎉 วันหยุด</option>
+      <option value="deadline">📎 ส่งงาน</option>
+      <option value="activity">⭐ กิจกรรม</option>
+    </select>
+    <input class="form-input" id="ev-name" placeholder="ชื่อกิจกรรม"/>
+    <div id="ev-err" class="err-msg"></div>
+    <button class="btn-primary" onclick="saveEvent()" style="margin-top:10px">✓ บันทึก</button>
+  </div>
+</div>
+
+<script src="js/app.js" defer></script>
+</body>
+</html>
